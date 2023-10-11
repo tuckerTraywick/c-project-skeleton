@@ -29,11 +29,13 @@ static void testImpl(int result, const char *test, const char *file, int line, c
     printf("%s(%i) %s:\nfailed '%s'\n\n", file, line, func, test);
 }
 
+__attribute__((unused))
 void beginTesting(void) {
     testsRun = 0;
     testsPassed = 0;
 }
 
+__attribute__((unused))
 void endTesting(void) {
     if (testsRun) {
         printf("%zu tests run, ", testsRun);
