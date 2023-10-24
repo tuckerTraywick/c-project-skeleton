@@ -8,16 +8,57 @@ SRC_FILES := $(shell find source -name '*.c')
 OBJ_FILES := $(SRC_FILES:%=build/%.o)
 D_FILES := $(SRC_FILES:%=build/%.d)
 
-TEST_SRC_FILES := $(shell find test -name '*.c')
+TEST_SRC_FILES := $(shell find test -name '*.c' 2> /dev/null)
 TEST_OBJ_FILES := $(TEST_SRC_FILES:%=build/%.o)
 TEST_D_FILES := $(TEST_SRC_FILES:%=build/%.d)
 
-.PRECIOUS: build/%.d
+# .PRECIOUS: build/%.d
 
-build: buildmessage binary/run binary/test
+.PHONY: all
+all: source newline tests
 
-buildmessage:
-	@echo "--- BUILDING ---"
+.PHONY: source
+source: sourcemessage binary/run
+
+.PHONY: tests
+tests: testsmessage binary/test
+
+.PHONY: run
+run: source
+	@echo
+	@echo "--- RUNNING ---" && binary/run $(ARGS)
+
+.PHONY: valgrind
+valgrind: source
+	@echo
+	@echo "--- RUNNING IN VALGRIND ---" && valgrind $(VALGRIND_FLAGS) binary/run $(ARGS)
+
+.PHONY: test
+test: all
+	@echo
+	@echo "--- TESTING ---" && binary/test
+
+.PHONY: testandrun
+testandrun: test run
+
+.PHONY: testandvalgrind
+testandvalgrind: test valgrind
+
+.PHONY: clean
+clean:
+	@rm -rf build binary
+
+.PHONY: sourcemessage
+sourcemessage:
+	@echo "--- BUILDING SOURCE ---"
+
+.PHONY: testsmessage
+testsmessage:
+	@echo "--- BUILDING TESTS ---"
+
+.PHONY: newline
+newline:
+	@echo
 
 binary/run: $(OBJ_FILES)
 	@mkdir -p binary
@@ -34,24 +75,5 @@ build/source/%.o: source/%
 build/test/%.o: test/%
 	@mkdir -p $(dir $@)
 	$(CC) -c -MMD -MP -MT $@ -MF build/test/$*.d -Iinclude -Isource -Itest $(CFLAGS) $(LIBRARIES) test/$* -o $@
-
-.PHONY: run
-run: build
-	@echo "\n--- RUNNING ---" && binary/run $(ARGS)
-
-.PHONY: valgrind
-valgrind: build
-	@echo "\n--- RUNNING IN VALGRIND ---" && valgrind $(VALGRIND_FLAGS) binary/run $(ARGS)
-
-.PHONY: test
-test: build
-	@echo "\n--- TESTING ---" && binary/test
-
-.PHONY: testandrun
-testandrun: build test run
-
-.PHONY: clean
-clean:
-	@rm -rf build binary
 
 -include $(D_FILES) $(TEST_D_FILES)
